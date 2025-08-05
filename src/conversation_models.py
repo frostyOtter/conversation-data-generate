@@ -105,3 +105,13 @@ class Conversation(BaseModel):
     tags: Optional[List[str]] = []
     user_metadata: Optional[UserMetadata] = None
     schema_version: str = Field(default="2.0.0")
+
+
+class Scenario(BaseModel):
+    scenario_name: str
+    user_persona: str
+    situation: str
+
+
+class Scenarios(BaseModel):
+    scenario_list: List[Scenario]

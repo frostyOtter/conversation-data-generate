@@ -144,7 +144,7 @@ if __name__ == "__main__":
         logger.info("-" * 60)
 
         main_topic = input(
-            "Enter the main topic (e.g., durian cultivation, weather forecast "
+            "Enter the main topic (e.g., durian cultivation, weather forecast: "
         )
         persona = input(
             "Enter a user persona (e.g., durian farmer, tourist in Bangkok): "
@@ -182,20 +182,31 @@ if __name__ == "__main__":
             [file for file in os.listdir(save_path) if file.endswith(".json")]
         )
 
-        for i in range(num_conversations):
-            generated_conv = generate_conversation(
-                content_generator, main_topic, persona, num_turns
-            )
-            filename = os.path.join(
-                save_path,
-                f"conversation_{i + 1}.json",
-            )
+        # Generate scenarios first
+        logger.info(
+            f"🎯 Generating {num_conversations} scenarios for '{main_topic}'..."
+        )
+        scenarios = content_generator.generate_scenarios(main_topic, num_conversations)
+        if len(scenarios) == 0:
+            logger.error(f"Total scenario generated: {len(scenarios)}")
+        else:
+            for i, scenario in enumerate(scenarios):
+                generated_conv = generate_conversation(
+                    content_generator,
+                    scenario.situation,
+                    scenario.user_persona,
+                    num_turns,
+                )
+                filename = os.path.join(
+                    save_path,
+                    f"conversation_{all_files + i + 1}.json",
+                )
 
-            with open(filename, "w", encoding="utf-8") as f:
-                f.write(generated_conv.model_dump_json(indent=2))
+                with open(filename, "w", encoding="utf-8") as f:
+                    f.write(generated_conv.model_dump_json(indent=2))
 
-            logger.info(
-                f"\n✅ Conversation {all_files + i + 1} successfully generated and saved to '{filename}'"
-            )
+                logger.info(
+                    f"\n✅ Conversation {all_files + i + 1} successfully generated and saved to '{filename}'"
+                )
 
-        logger.info("\n🎉 All conversations generated!")
+            logger.info("\n🎉 All conversations generated!")

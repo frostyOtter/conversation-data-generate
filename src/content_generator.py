@@ -1,6 +1,8 @@
 from typing import List, Dict, Tuple
 from google import genai
 from loguru import logger
+from pydantic import BaseModel
+from src.conversation_models import Scenarios
 
 
 class ContentGenerator:
@@ -39,6 +41,24 @@ class ContentGenerator:
         except Exception as e:
             logger.error(f"Error calling Gemini API: {e}")
             return f"// Error generating content: {e} //", 0, 0, 0
+
+    def _generate_structured_content(
+        self, prompt: str, basemodel: BaseModel
+    ) -> BaseModel:
+        try:
+            response = self.client.models.generate_content(
+                model="gemini-2.0-flash",
+                contents=prompt,
+                config=genai.types.GenerateContentConfig(
+                    response_mime_type="application/json",
+                    response_schema=list[basemodel],
+                ),
+            )
+            return response.parsed
+
+        except Exception as e:
+            logger.error(f"Error calling Gemini API: {e}")
+            return f"//Error generating content: {e}//"
 
     def _format_history(self, history: List[Dict[str, str]]) -> str:
         """Formats the history list into a readable string for the prompt."""
@@ -97,3 +117,34 @@ class ContentGenerator:
             Do not mention your tools explicitly (e.g., don't say "my tool says...").
             """
         return self._generate_content(prompt)
+
+    def generate_scenarios(self, topic: str, num_scenarios: int) -> List[BaseModel]:
+        prompt = f"""
+        Generate {num_scenarios} diverse, realistic scenarios related to '{topic}'.
+        Each scenario should represent a different use case, problem, or situation within this domain.
+        
+        Format your response as a numbered list with:
+        - Scenario name (2-4 words)
+        - User persona (brief description)
+        - Specific situation or problem they face
+        
+        Example format:
+        1. **Beginner Setup** - New hobbyist who just started and needs basic guidance.
+        2. **Troubleshooting Issue** - Experienced user facing a specific technical problem.
+        3. **Greeting and General conversation** - This encompasses initial greetings, casual conversation, and exploratory interactions where users seek to assess the AI service's capabilities.
+        4. **Incorporate To Answer** - This covers scenarios where users provide information independently, without integrating it into a structured query or prompt.
+        
+        Make each scenario distinct and realistic for the '{topic}' domain.
+        """
+
+        response = self._generate_structured_content(prompt, Scenarios)
+        scenario_list = response[0].scenario_list
+
+        if not scenario_list:
+            return []
+
+        return (
+            scenario_list[:num_scenarios]
+            if len(scenario_list) >= num_scenarios
+            else scenario_list
+        )
