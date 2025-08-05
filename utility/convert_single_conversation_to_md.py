@@ -152,27 +152,9 @@ def convert_json_to_markdown(conversation_data: Dict[str, Any]) -> str:
     return "\n".join(parts)
 
 
-# Main execution block
-if __name__ == "__main__":
-    if len(sys.argv) < 2:
-        print("Usage: python converter.py <script_number>")
-        sys.exit(1)
-
-    script_number = sys.argv[1]
-
-    conversation_path = "conversations"
-    script_name = f"conversation_{script_number}"
-    output_path = "conversations_md"
-
-    # Create output directory if it doesn't exist
-    if not os.path.exists(output_path):
-        os.makedirs(output_path)
-
-    if not os.path.exists(conversation_path):
-        os.makedirs(conversation_path)
-
-    json_file_path = os.path.join(conversation_path, script_name + ".json")
-    markdown_file_path = os.path.join(output_path, script_name + ".md")
+def actions(script_name: str) -> None:
+    json_file_path = os.path.join(conversation_path, script_name)
+    markdown_file_path = os.path.join(output_path, script_name[:-5] + ".md")
 
     try:
         with open(json_file_path, "r") as f:
@@ -191,3 +173,28 @@ if __name__ == "__main__":
         print(f"❌ Error: The file '{json_file_path}' contains invalid JSON.")
     except Exception as e:
         print(f"❌ An unexpected error occurred: {e}")
+
+
+# Main execution block
+if __name__ == "__main__":
+    if len(sys.argv) < 2:
+        print("Usage: python converter.py <script_number>")
+        sys.exit(1)
+
+    conversation_path = "conversations"
+    output_path = "conversations_md"
+    # Create output directory if it doesn't exist
+    if not os.path.exists(output_path):
+        os.makedirs(output_path)
+
+    if not os.path.exists(conversation_path):
+        os.makedirs(conversation_path)
+
+    script_number = sys.argv[1]
+    if script_number == "-1":
+        all_files = os.listdir(conversation_path)
+        for file in all_files:
+            actions(file)
+    else:
+        script_name = f"conversation_{script_number}.json"
+        actions(script_name)

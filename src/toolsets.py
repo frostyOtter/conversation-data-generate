@@ -1,6 +1,6 @@
 import yaml
 import random
-from typing import List, Optional, Tuple, Dict
+from typing import Optional, Tuple, Dict
 from src.conversation_models import ToolCallIO
 
 
@@ -12,16 +12,6 @@ def read_tools_registry_from_yaml_file(file_path: str) -> Tuple[Dict, Dict]:
         file_content.get("TOOLS_REGISTRY"),
         file_content.get("TOPIC_KEYWORD_TO_TOOLS"),
     )
-
-
-def get_relevant_tools(text: str, topic_keyword_to_tools: Dict) -> List[str]:
-    tools = set()
-    for keyword, tool_list in topic_keyword_to_tools.items():
-        if keyword in text.lower():
-            tools.update(tool_list)
-    if not tools:
-        tools.add("get_durian_export_market_news")
-    return random.sample(list(tools), k=min(len(tools), random.randint(1, 2)))
 
 
 def generate_mock_tool_call(tool_name: str, registry: dict) -> Optional[ToolCallIO]:

@@ -115,3 +115,9 @@ class Scenario(BaseModel):
 
 class Scenarios(BaseModel):
     scenario_list: List[Scenario]
+
+
+class UserQuery(BaseModel):
+    user_message: str
+    suggest_actions: List[str]
+    suggest_tools: Optional[List[str]] = None

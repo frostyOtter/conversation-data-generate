@@ -19,7 +19,6 @@ from src.conversation_models import (
 )
 from src.toolsets import (
     generate_mock_tool_call,
-    get_relevant_tools,
     read_tools_registry_from_yaml_file,
 )
 from src.content_generator import ContentGenerator
@@ -45,9 +44,14 @@ def generate_conversation(
     for i in range(turns):
         turn_start_time = start_time + timedelta(minutes=i * 2)
         logger.info(f"Turn {i + 1}: Generating user query...")
-        user_query, _, _, _ = generator.generate_user_query(
-            conversation_history, topic, persona
+
+        user_responses = generator.generate_user_query(
+            conversation_history, topic, persona, list(tools_registry.keys())
         )
+        user_query = user_responses[0].user_message
+        suggest_actions = user_responses[0].suggest_actions
+        suggest_tools = user_responses[0].suggest_tools
+
         conversation_history.append({"role": "user", "text": user_query})
         user_msg_id = f"user_msg_{uuid.uuid4()}"
         all_turns.append(
@@ -69,19 +73,24 @@ def generate_conversation(
         time.sleep(0.5)
 
         logger.info(f"Turn {i + 1}: Generating assistant response...")
-        selected_tools = get_relevant_tools(user_query, topic_keyword_to_tools)
-        tool_calls = [
-            generate_mock_tool_call(tool, tools_registry) for tool in selected_tools
-        ]
-        tool_calls = [tc for tc in tool_calls if tc]  # Filter out None
-        tool_outputs = [tc.output_content[0] for tc in tool_calls if tc.success]
+        if suggest_tools:
+            tool_calls = [
+                generate_mock_tool_call(tool, tools_registry) for tool in suggest_tools
+            ]
+            tool_calls = [tc for tc in tool_calls if tc]  # Filter out None
+            tool_outputs = [tc.output_content[0] for tc in tool_calls if tc.success]
+        else:
+            tool_calls = []
+            tool_outputs = ["Not need"]
 
         (
             assistant_text,
             prompt_token_count,
             completion_token_count,
             total_token_count,
-        ) = generator.generate_assistant_response(conversation_history, tool_outputs)
+        ) = generator.generate_assistant_response(
+            conversation_history, persona, tool_outputs, suggest_actions
+        )
         conversation_history.append({"role": "assistant", "text": assistant_text})
         asst_msg_id = f"asst_msg_{uuid.uuid4()}"
         latency = sum(tc.latency_ms for tc in tool_calls) + random.randint(500, 1500)
@@ -108,9 +117,7 @@ def generate_conversation(
                     generated_at=turn_start_time + timedelta(seconds=5),
                     received_at=turn_start_time + timedelta(seconds=1),
                 ),
-                summary=TurnSummary(
-                    intent=f"intent_{topic}", tools_used=selected_tools
-                ),
+                summary=TurnSummary(intent=f"intent_{topic}", tools_used=suggest_tools),
             )
         )
         last_message_id = asst_msg_id
