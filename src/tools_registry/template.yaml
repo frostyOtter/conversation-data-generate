@@ -1,0 +1,33 @@
+# ===============================
+# TOOL CONFIGURATION TEMPLATE
+# ===============================
+TOOLS_REGISTRY:
+  tool_name_here:  # e.g., get_durian_price
+    description: "Write a short description of what this tool does."
+    params:
+      param_name_1:  # e.g., variety
+        type: str  # str | int | float | bool
+        enum: ["Option1", "Option2", "Option3"]  # Optional: only if restricted choices
+      param_name_2:  # e.g., grade
+        type: str
+        enum: ["A", "B", "C"]
+    mock_output_template: "Write the mock output string with placeholders like {param_name_1}, {param_name_2}"
+
+  another_tool_name:
+    description: "Another tool's description."
+    params:
+      example_param:
+        type: int
+        enum: [1, 2, 3]  # Optional
+    mock_output_template: "Template string using {example_param}"
+
+# ==================================
+# KEYWORD-TO-TOOL MAPPING TEMPLATE
+# ==================================
+TOPIC_KEYWORD_TO_TOOLS:
+  keyword_1:  # e.g., durian
+    - tool_name_here
+    - another_tool_name
+
+  keyword_2:  # e.g., weather
+    - tool_name_here
