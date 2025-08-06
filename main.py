@@ -18,7 +18,6 @@ from src.conversation_models import (
     UserMetadata,
 )
 from src.toolsets import (
-    generate_mock_tool_call,
     read_tools_registry_from_yaml_file,
 )
 from src.content_generator import ContentGenerator
@@ -37,7 +36,7 @@ def generate_conversation(
         "\n" + "=" * 50 + f"\nGenerating new conversation on '{topic}'...\n" + "=" * 50
     )
 
-    tools_registry, topic_keyword_to_tools = read_tools_registry_from_yaml_file(
+    tools_registry, _ = read_tools_registry_from_yaml_file(
         os.path.join("src", "tools_registry", "durian_cultivation.yaml")
     )
 
@@ -45,12 +44,18 @@ def generate_conversation(
         turn_start_time = start_time + timedelta(minutes=i * 2)
         logger.info(f"Turn {i + 1}: Generating user query...")
 
+        tool_descriptions = {
+            tool_name: tool_config["description"]
+            for tool_name, tool_config in tools_registry.items()
+        }
+
         user_responses = generator.generate_user_query(
-            conversation_history, topic, persona, list(tools_registry.keys())
+            conversation_history, topic, persona, tool_descriptions
         )
-        user_query = user_responses[0].user_message
-        suggest_actions = user_responses[0].suggest_actions
-        suggest_tools = user_responses[0].suggest_tools
+
+        user_query = user_responses.user_message
+        suggest_actions = user_responses.suggest_actions
+        suggest_tools = user_responses.suggest_tools
 
         conversation_history.append({"role": "user", "text": user_query})
         user_msg_id = f"user_msg_{uuid.uuid4()}"
@@ -74,11 +79,15 @@ def generate_conversation(
 
         logger.info(f"Turn {i + 1}: Generating assistant response...")
         if suggest_tools:
-            tool_calls = [
-                generate_mock_tool_call(tool, tools_registry) for tool in suggest_tools
-            ]
-            tool_calls = [tc for tc in tool_calls if tc]  # Filter out None
-            tool_outputs = [tc.output_content[0] for tc in tool_calls if tc.success]
+            tool_calls = []
+            for tool in suggest_tools:
+                result = generator.generate_mock_tool_call(
+                    conversation_history, tool, tools_registry
+                )
+                if result:  # This check filters out the None values
+                    tool_calls.append(result)
+
+            tool_outputs = [tc.output_content for tc in tool_calls if tc.success]
         else:
             tool_calls = []
             tool_outputs = ["Not need"]
@@ -148,6 +157,12 @@ if __name__ == "__main__":
     else:
         logger.info("✅ Gemini API Key loaded successfully.")
         logger.info("🤖 Conversation Data Generator (With History Aware)")
+        logger.info("-" * 60)
+
+        import logfire
+
+        logfire.configure(token=os.getenv("LOGFIRE_TOKEN"))
+        logfire.instrument_pydantic_ai()
         logger.info("-" * 60)
 
         main_topic = input(

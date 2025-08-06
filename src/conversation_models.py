@@ -1,5 +1,5 @@
 from pydantic import BaseModel, HttpUrl, Field
-from typing import Optional, Literal, List, Dict, Union
+from typing import Optional, Literal, List, Dict
 from datetime import datetime
 
 
@@ -40,7 +40,7 @@ class LatencyStats(BaseModel):
 
 class ToolCallIO(BaseModel):
     function_tool: str
-    input_params: Dict[str, Union[str, int, float, bool]]
+    input_params: Optional[Dict[str, str]] = None
     output_content: List[str]
     success: bool
     latency_ms: int
@@ -121,3 +121,7 @@ class UserQuery(BaseModel):
     user_message: str
     suggest_actions: List[str]
     suggest_tools: Optional[List[str]] = None
+
+
+class ToolRequestResults(BaseModel):
+    responses: List[ToolCallIO]
